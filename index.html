@@ -63,6 +63,7 @@
           </form>
           <div class="vault-result" id="seal-result" hidden>
             <div class="result-symbol" aria-hidden="true">✳</div><h3>Şifrelendi.</h3><p class="result-caption">Şifreli dosyayı ve anahtarı ayrı sakla.</p>
+            <p class="sculpture-receipt mono" id="sealed-sculpture"></p>
             <button class="vault-primary" id="download-sealed"><span>Kilitli dosyayı indir</span><span aria-hidden="true">↓</span></button>
             <div class="key-label"><label class="vault-label" for="sealed-key">Açma anahtarın</label><button id="reveal-key" aria-pressed="false">Göster</button></div>
             <input class="key-input" id="sealed-key" type="password" readonly autocomplete="off" aria-label="Üretilen açma anahtarı" />
@@ -80,7 +81,7 @@
             <p class="vault-error" id="open-error" role="alert" hidden></p>
             <button type="submit" class="vault-primary" id="open-submit" disabled><span>Şifreyi çöz</span><span aria-hidden="true">↗</span></button>
           </form>
-          <div class="vault-result" id="open-result" hidden><div class="result-symbol" aria-hidden="true">↗</div><h3>Şifre çözüldü.</h3><p class="result-caption" id="opened-name"></p><textarea id="opened-text" rows="5" readonly aria-label="Açılan metin" spellcheck="false" hidden></textarea><button class="vault-primary" id="download-opened"><span>Açılan dosyayı indir</span><span aria-hidden="true">↓</span></button><button class="open-another" id="open-another">Başka bir içerik aç ↗</button></div>
+          <div class="vault-result" id="open-result" hidden><div class="result-symbol" aria-hidden="true">↗</div><h3>Şifre çözüldü.</h3><p class="result-caption" id="opened-name"></p><p class="sculpture-receipt mono" id="opened-sculpture" hidden></p><textarea id="opened-text" rows="5" readonly aria-label="Açılan metin" spellcheck="false" hidden></textarea><button class="vault-primary" id="download-opened"><span>Açılan dosyayı indir</span><span aria-hidden="true">↓</span></button><button class="open-another" id="open-another">Başka bir içerik aç ↗</button></div>
         </div>
         <div class="vault-local mono"><span class="status-dot" aria-hidden="true"></span> SUNUCUYA YÜKLEME YOK</div>
       </section>
@@ -88,8 +89,9 @@
       <section class="entropy-strip" aria-label="Anahtar kaynakları">
         <div class="entropy-intro"><span class="mono">ÇALIŞMA BİÇİMİ</span><p>Anahtar<br /><em>kaynakları.</em></p></div>
         <div class="entropy-source system-source"><span class="source-number mono">01</span><div><strong>Güvenli temel</strong><p>Tarayıcının kriptografik rastgeleliği</p><span class="source-state mono">HER ANAHTARDA YENİLENİR</span></div><svg class="source-wave" viewBox="0 0 120 24" fill="none" aria-hidden="true"><path d="M0 12h8l3-5 4 14 5-18 4 9h12l4-7 5 14 4-7h10l4-10 6 20 4-10h13l4-6 5 12 5-6h20" stroke="currentColor" stroke-width="1"/></svg></div>
-        <div class="entropy-source physical-source"><span class="source-number mono">02</span><div><strong>Senin hareketin</strong><p>Dokunuşlar ve isteğe bağlı kamera</p><span class="source-state mono" id="source-count">0 EK ÖRNEK</span></div><button id="camera-toggle" aria-pressed="false">Kamera ekle <span aria-hidden="true">↗</span></button><video id="source-video" autoplay playsinline muted hidden aria-label="Yalnızca bu cihazda işlenen kamera önizlemesi"></video></div>
-        <p class="entropy-explanation" id="source-note">Heykel görsel bir simülasyon. Güvenlik, tarayıcının rastgeleliğine dayanır; ek örnekler için entropi miktarı iddia edilmez.</p>
+        <div class="entropy-source sculpture-source"><span class="source-number mono">02</span><div><strong>Canlı heykel</strong><p>Görüntü, biçim ve hareket</p><span class="source-state mono" id="sculpture-source-state">HER ŞİFRELEMEDE ÖRNEKLENİR</span></div></div>
+        <div class="entropy-source physical-source"><span class="source-number mono">03</span><div><strong>Senin hareketin</strong><p>Dokunuşlar ve isteğe bağlı kamera</p><span class="source-state mono" id="source-count">0 EK ÖRNEK</span></div><button id="camera-toggle" aria-pressed="false">Kamera ekle <span aria-hidden="true">↗</span></button><video id="source-video" autoplay playsinline muted hidden aria-label="Yalnızca bu cihazda işlenen kamera önizlemesi"></video></div>
+        <p class="entropy-explanation" id="source-note">Heykelin görüntüsü ve hareketi anahtara katılır. Güvenli temel tarayıcının rastgeleliğidir.</p>
       </section>
 
 
@@ -131,8 +133,8 @@
       <span class="eyebrow mono">UYGULAMA HAKKINDA</span>
       <h2>Şifreleme<br /><em>nasıl çalışır?</em></h2>
       <p>Kasa, metin ve dosyalarını AES-256-GCM ile doğrudan tarayıcında şifreler. Dosya adı da şifreli içeriğin içinde kalır. Çıktı standart JWE biçimindedir. Her kilitlemede yeni bir 256 bit anahtar ve 96 bit başlangıç değeri üretilir.</p>
-      <p>Anahtarın temeli tarayıcının güvenli rastgelelik kaynağıdır. Dokunuşların ve istersen kamera örneklerin SHA-256 ile özetlenip HKDF karışımına eklenir. Bu ek kaynaklar için ölçülmüş entropi veya ek güvenlik garantisi verilmez. Kamera varsayılan olarak kapalıdır.</p>
-      <p>Heykel, aynı tohumdan yeniden kurulabilen görsel bir simülasyondur. Görüntüsü, adı ve adresindeki tohum açma anahtarını içermez. Cloudflare fiziksel lav lambalarını ek rastgelelik kaynağı olarak kullanır; bu sayfadaki animasyonun görevi süreci görünür kılmaktır.</p>
+      <p>Her kilitlemede heykelin o anki görüntüsü, biçimi ve hareketi SHA-256 ile özetlenip yeni rastgele anahtarla HKDF üzerinden birleştirilir. O ana ait heykel izi şifreli dosyaya eklenir. Açarken aynı heykeli kurmana gerek yok; kaydettiğin anahtar yeterli.</p>
+      <p>Anahtarın güvenli temeli tarayıcının kriptografik rastgeleliğidir. Dokunuşlar ve isteğe bağlı kamera örnekleri de karışıma katılabilir. Heykel simülasyonu ve ek örnekler için ölçülmüş entropi veya ek güvenlik garantisi verilmez. Kamera başlangıçta kapalıdır; görüntü ve adresindeki tohum açma anahtarını içermez.</p>
       <div class="about-note"><span class="mono">VERİLER VE ANAHTARLAR</span><p>İçerik, anahtar ve kamera örnekleri sunucuya gönderilmez veya uygulama tarafından kalıcı kaydedilmez. Anahtarı içerikten ayrı sakla; anahtar kaybolursa geri getirme yok. “Temizle” sayfadaki içeriği ve anahtarları kaldırıp kamerayı kapatır. Bu uygulama bağımsız bir güvenlik denetiminden geçmemiştir.</p></div>
       <p>Atölye’de sonsuz form üretimi, malzeme seçimi, ses ve afiş indirme devam eder.</p>
       <span class="about-signature mono"><a href="https://blog.cloudflare.com/lavarand-in-production-the-nitty-gritty-technical-details/" target="_blank" rel="noopener noreferrer">LAVARAND →</a> <span aria-hidden="true"> · </span> <a href="https://www.rfc-editor.org/rfc/rfc7516.html" target="_blank" rel="noopener noreferrer">JWE STANDARDI →</a></span>

@@ -1,6 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SourceMixer, CameraSampler } from '../vault-sources.js';
+import { SourceMixer, CameraSampler, SCULPTURE_SAMPLE_SIZE, hashSculptureFrame } from '../vault-sources.js';
+
+test('the sculpture digest binds both rendered pixels and the actual frame state', async () => {
+  const pixels = new Uint8Array(SCULPTURE_SAMPLE_SIZE ** 2 * 4).fill(81);
+  const state = { seed: 'b8740a35d39fe6421e759c084af6032b', time: 1, bloom: 0, rotation: [0, 0, 0] };
+  const first = await hashSculptureFrame(pixels, state);
+  assert.equal(first.length, 32);
+  assert.deepEqual(await hashSculptureFrame(pixels, state), first);
+  pixels[1234] ^= 1;
+  assert.notDeepEqual(await hashSculptureFrame(pixels, state), first);
+  pixels[1234] ^= 1;
+  assert.notDeepEqual(await hashSculptureFrame(pixels, { ...state, time: 2 }), first);
+  assert.notDeepEqual(await hashSculptureFrame(pixels, { ...state, bloom: 0.5 }), first);
+  assert.notDeepEqual(await hashSculptureFrame(pixels, { ...state, rotation: [0, 1, 0] }), first);
+  assert.equal(pixels[0], 81);
+});
+
+test('missing or malformed sculpture frames cannot produce a digest', async () => {
+  const pixels = new Uint8Array(SCULPTURE_SAMPLE_SIZE ** 2 * 4);
+  await assert.rejects(hashSculptureFrame(new Uint8Array(4), {}), /Heykel/);
+  await assert.rejects(hashSculptureFrame(null, {}), /Heykel/);
+  await assert.rejects(hashSculptureFrame(pixels, {}, {}), /Heykel/);
+  await assert.rejects(hashSculptureFrame(pixels, { oversized: 'x'.repeat(8192) }), /Heykel/);
+});
 
 test('supplemental source pool hashes samples, counts actual samples, and clears state', async () => {
   const seen = [], mixer = new SourceMixer(globalThis.crypto, (count) => seen.push(count));

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { DEFAULT_SEED, CURVE_SAMPLES, normalizeSeed, randomSeed, generateForm, createCurveTexture } from './form-generator.js';
 import { initVault } from './vault-ui.js';
+import { SCULPTURE_SAMPLE_SIZE, hashSculptureFrame } from './vault-sources.js';
 
 const $ = (selector) => document.querySelector(selector);
 const forms = [
@@ -636,7 +637,28 @@ catch(error) {
   $('#sound').disabled=true;
   canvas.hidden=true;
 }
-initVault({ notify, initialWorkspace: url.searchParams.get('workspace') === 'art' ? 'art' : 'vault', onPhase(phase) {
+const sculptureSampleCanvas = document.createElement('canvas');
+sculptureSampleCanvas.width = sculptureSampleCanvas.height = SCULPTURE_SAMPLE_SIZE;
+async function captureSculpture() {
+  if (!ready || !renderer || renderer.getContext().isContextLost() || canvas.hidden) throw new Error('Heykel henüz hazır değil.');
+  // Capture the actual rendered frame before encryption feedback changes it.
+  renderer.render(scene, camera);
+  const context = sculptureSampleCanvas.getContext('2d', { willReadFrequently: true });
+  context.clearRect(0, 0, SCULPTURE_SAMPLE_SIZE, SCULPTURE_SAMPLE_SIZE);
+  context.drawImage(canvas, 0, 0, SCULPTURE_SAMPLE_SIZE, SCULPTURE_SAMPLE_SIZE);
+  const pixels = new Uint8Array(context.getImageData(0, 0, SCULPTURE_SAMPLE_SIZE, SCULPTURE_SAMPLE_SIZE).data.buffer);
+  const frame = {
+    form: state.form, material: state.material, seed: state.seed,
+    from: recipeFrom.seed, to: recipeTo.seed,
+    time: surface.uTime.value, bloom: surface.uBloom.value,
+    morph: surface.uRecipeMorph.value, generated: surface.uGenerated.value,
+    shape: weights.toArray(), pointer: smoothPointer.toArray(),
+    transform: sculpture.matrixWorld.toArray(), camera: camera.projectionMatrix.toArray(),
+  };
+  try { return await hashSculptureFrame(pixels, frame); }
+  finally { pixels.fill(0); context.clearRect(0, 0, SCULPTURE_SAMPLE_SIZE, SCULPTURE_SAMPLE_SIZE); }
+}
+initVault({ notify, captureSculpture, initialWorkspace: url.searchParams.get('workspace') === 'art' ? 'art' : 'vault', onPhase(phase) {
   clearTimeout(vaultPhaseTimer);
   stage.classList.toggle('crypto-working', phase === 'working');
   stage.classList.toggle('crypto-success', phase === 'success');

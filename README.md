@@ -41,7 +41,11 @@ npm run preview
 
 [Cloudflare LavaRand](https://blog.cloudflare.com/lavarand-in-production-the-nitty-gritty-technical-details/) fikrinden esinlenen isteğe bağlı hareket/kamera örnekleri SHA-256 havuzuna girer ve HKDF-SHA-256 ile yeni kriptografik anahtara karıştırılır. Kamera başlangıçta kapalıdır; ses kaydı alınmaz. Ek örnekler için ölçülmüş entropi veya güvenlik artışı iddia edilmez. Güvenli temel her zaman tarayıcının kriptografik rastgeleliğidir.
 
-3D heykel bir görselleştirmedir. Paylaşılabilir 128 bit form tohumu deterministiktir ve şifreleme anahtarından ayrıdır. Bu prototip bağımsız güvenlik denetiminden geçmemiştir; JavaScript belleğindeki tüm kopyaların güvenli biçimde silinmesi garanti edilemez.
+**Heykel anahtara dahildir.** Her kilitlemede gerçek WebGL karesinin 64×64 piksel örneği ve o karede kullanılan biçim, materyal, zaman, katman açıklığı, geçiş ve dönüşüm durumu SHA-256 ile özetlenir. HKDF-SHA-256 `info` alanına bu özet ve sürümlü uygulama bağlamı girer; girdi anahtarı her seferinde Web Crypto ile yeniden üretilir. Ek örnek havuzu varsa `salt`, yoksa sıfır dolu 32 bayt salt kullanılır. [Web Crypto standardı](https://www.w3.org/TR/2017/REC-WebCryptoAPI-20170126/#hkdf-operations) kullanılır. Heykel okunamazsa şifreleme bir hata gösterir.
+
+Heykelin SHA-256 izi şifreli JSON yükünde saklanır ve AES-GCM ile doğrulanır; sonuçta ve şifre çözülünce kısa izi gösterilir. Açmak için heykeli yeniden üretmek gerekmez: indirilen anahtar yeterlidir. Önceki `.jwe` dosyaları desteklenir.
+
+Paylaşılabilir 128 bit form tohumu deterministiktir; heykel tek başına anahtarı yeniden oluşturamaz. Heykel katkısı için ölçülmüş entropi veya ek güvenlik iddiası yoktur. Bu prototip bağımsız güvenlik denetiminden geçmemiştir; JavaScript belleğindeki tüm kopyaların güvenli biçimde silinmesi garanti edilemez.
 
 ## Dosyalar
 
@@ -50,7 +54,7 @@ npm run preview
 | `main.js` | Three.js sahnesi, etkileşim, Web Audio ve PNG afiş |
 | `form-generator.js` | Tohumdan deterministik geometri, ad ve akor üretimi |
 | `vault-crypto.js` | JWE şifreleme ve şifre çözme |
-| `vault-sources.js` | Hareket örnekleri, yerel kamera örnekleme ve kaynak havuzu |
+| `vault-sources.js` | Heykel karesi özeti, hareket örnekleri, yerel kamera ve kaynak havuzu |
 | `vault-ui.js` | Kasa, indirme ve çalışma alanı kontrolleri |
 | `style.css`, `vault.css` | Masaüstü ve mobil arayüz |
 | `test/` | Geometri, şifreleme ve kaynak yaşam döngüsü testleri |

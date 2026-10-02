@@ -1,5 +1,6 @@
 // Standard JWE compact serialization (RFC 7516), direct key, A256GCM.
-// Visual seeds and animation state are deliberately absent from this module.
+// A rendered sculpture digest can bind key derivation to the sampled frame.
+// It is public context, never a substitute for fresh cryptographic randomness.
 export const MAX_BYTES = 10 * 1024 * 1024;
 export const MAX_PACKAGE_CHARS = Math.ceil((MAX_BYTES * 4 / 3 + 8192) * 4 / 3) + 4096;
 const encoder = new TextEncoder();
@@ -49,17 +50,21 @@ function keyBytes(secret) {
   return bytes;
 }
 
-async function newSecret(supplemental, cryptoProvider) {
+async function newSecret(supplemental, sculpture, cryptoProvider) {
   const crypto = provider(cryptoProvider);
+  if (supplemental !== null && (!(supplemental instanceof Uint8Array) || supplemental.length !== 32)) throw new VaultError('Geçersiz kaynak örneği.');
+  if (sculpture !== null && (!(sculpture instanceof Uint8Array) || sculpture.length !== 32)) throw new VaultError('Geçersiz heykel izi.');
   // generateKey always supplies fresh OS-backed cryptographic randomness.
-  // Camera/pointer samples are optional context, with zero credited entropy.
+  // Sculpture/camera/pointer samples are context, with zero credited entropy.
   let key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-  if (supplemental?.length) {
-    if (!(supplemental instanceof Uint8Array) || supplemental.length !== 32) throw new VaultError('Geçersiz kaynak örneği.');
+  if (supplemental || sculpture) {
     const initial = new Uint8Array(await crypto.subtle.exportKey('raw', key));
     try {
       const input = await crypto.subtle.importKey('raw', initial, 'HKDF', false, ['deriveKey']);
-      key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: supplemental, info: encoder.encode('ESIK/local-vault/v1') }, input, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+      const domain = encoder.encode(sculpture ? 'ESIK/local-vault/sculpture/v1\0' : 'ESIK/local-vault/v1');
+      const info = new Uint8Array(domain.length + (sculpture?.length || 0));
+      info.set(domain); if (sculpture) info.set(sculpture, domain.length);
+      key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: supplemental || new Uint8Array(32), info }, input, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     } finally { initial.fill(0); }
   }
   const raw = new Uint8Array(await crypto.subtle.exportKey('raw', key));
@@ -68,20 +73,23 @@ async function newSecret(supplemental, cryptoProvider) {
   } finally { raw.fill(0); }
 }
 
-export async function seal({ kind, name, mime, bytes }, supplemental = null, cryptoProvider = globalThis.crypto) {
+export async function seal({ kind, name, mime, bytes, sculpture = null }, supplemental = null, cryptoProvider = globalThis.crypto) {
   const crypto = provider(cryptoProvider);
   if (!['text', 'file'].includes(kind) || !(bytes instanceof Uint8Array)) throw new VaultError('Geçersiz içerik.');
   if (bytes.length > MAX_BYTES) throw new VaultError('En fazla 10 MB kilitleyebilirsin.');
-  const plaintext = encoder.encode(JSON.stringify({ v: 1, kind, name: safeFilename(name), mime: validMime(mime), data: base64url(bytes) }));
+  if (sculpture !== null && (!(sculpture instanceof Uint8Array) || sculpture.length !== 32)) throw new VaultError('Geçersiz heykel izi.');
+  sculpture = sculpture?.slice() || null;
+  const fingerprint = sculpture ? Array.from(sculpture, (byte) => byte.toString(16).padStart(2, '0')).join('') : null;
+  const plaintext = encoder.encode(JSON.stringify({ v: 1, kind, name: safeFilename(name), mime: validMime(mime), data: base64url(bytes), ...(fingerprint ? { sculpture: fingerprint } : {}) }));
   try {
-    const { key, secret } = await newSecret(supplemental, crypto);
+    const { key, secret } = await newSecret(supplemental, sculpture, crypto);
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const protectedHeader = base64url(encoder.encode(JSON.stringify(HEADER)));
     const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(protectedHeader), tagLength: 128 }, key, plaintext));
     const ciphertext = encrypted.subarray(0, -16);
     const tag = encrypted.subarray(-16);
-    return { secret, compact: [protectedHeader, '', base64url(iv), base64url(ciphertext), base64url(tag)].join('.') };
-  } finally { plaintext.fill(0); }
+    return { secret, compact: [protectedHeader, '', base64url(iv), base64url(ciphertext), base64url(tag)].join('.'), ...(fingerprint ? { sculpture: fingerprint } : {}) };
+  } finally { plaintext.fill(0); sculpture?.fill(0); }
 }
 
 export async function unseal(compact, secret, cryptoProvider = globalThis.crypto) {
@@ -109,9 +117,10 @@ export async function unseal(compact, secret, cryptoProvider = globalThis.crypto
   try {
     const payload = JSON.parse(decoder.decode(plaintext));
     if (payload?.v !== 1 || !['text', 'file'].includes(payload.kind) || typeof payload.name !== 'string' || typeof payload.data !== 'string' || payload.data.length > Math.ceil(MAX_BYTES * 4 / 3)) throw new Error();
+    if (payload.sculpture !== undefined && (typeof payload.sculpture !== 'string' || !/^[a-f0-9]{64}$/.test(payload.sculpture))) throw new Error();
     const bytes = fromBase64url(payload.data);
     if (bytes.length > MAX_BYTES) throw new Error();
-    return { kind: payload.kind, name: safeFilename(payload.name), mime: validMime(payload.mime), bytes };
+    return { kind: payload.kind, name: safeFilename(payload.name), mime: validMime(payload.mime), bytes, ...(payload.sculpture ? { sculpture: payload.sculpture } : {}) };
   } catch { throw new VaultError('Dosya açıldı, ancak içerik biçimi geçersiz.'); }
   finally { plaintext.fill(0); }
 }

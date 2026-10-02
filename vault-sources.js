@@ -1,5 +1,21 @@
 // Supplemental samples are never assigned an entropy estimate. The mandatory
 // cryptographic key generator remains secure without any of these samples.
+export const SCULPTURE_SAMPLE_SIZE = 64;
+const sculptureDomain = new TextEncoder().encode('ESIK/sculpture-frame/v1\n');
+
+export async function hashSculptureFrame(pixels, state, cryptoProvider = globalThis.crypto) {
+  if (!(pixels instanceof Uint8Array) || pixels.length !== SCULPTURE_SAMPLE_SIZE ** 2 * 4 || !cryptoProvider?.subtle) throw new Error('Heykel karesi okunamadı.');
+  const metadata = new TextEncoder().encode(JSON.stringify(state));
+  if (!metadata.length || metadata.length > 8192) throw new Error('Heykel durumu geçersiz.');
+  const input = new Uint8Array(sculptureDomain.length + 4 + metadata.length + pixels.length);
+  input.set(sculptureDomain);
+  new DataView(input.buffer).setUint32(sculptureDomain.length, metadata.length);
+  input.set(metadata, sculptureDomain.length + 4);
+  input.set(pixels, sculptureDomain.length + 4 + metadata.length);
+  try { return new Uint8Array(await cryptoProvider.subtle.digest('SHA-256', input)); }
+  finally { input.fill(0); metadata.fill(0); }
+}
+
 export class SourceMixer {
   constructor(cryptoProvider = globalThis.crypto, onSample = () => {}) {
     this.crypto = cryptoProvider;

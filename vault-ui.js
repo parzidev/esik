@@ -2,7 +2,7 @@ import './vault.css';
 import { MAX_BYTES, MAX_PACKAGE_CHARS, seal, unseal, safeFilename, VaultError } from './vault-crypto.js';
 import { SourceMixer, CameraSampler } from './vault-sources.js';
 
-export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vault' }) {
+export function initVault({ notify, captureSculpture, onPhase = () => {}, initialWorkspace = 'vault' }) {
   const $ = (selector) => document.querySelector(selector);
   const encoder = new TextEncoder();
   const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -15,6 +15,7 @@ export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vaul
     $('#camera-toggle').innerHTML = active ? 'Kamerayı kapat <span aria-hidden="true">×</span>' : 'Kamera ekle <span aria-hidden="true">↗</span>';
   } });
   const available = !!globalThis.crypto?.subtle;
+  const sculptureLabel = (value) => `Heykel izi · ${value.slice(0, 16).match(/.{4}/g).join('·').toUpperCase()}`;
 
   function setError(id, message = '') { const node = $(id); node.textContent = message; node.hidden = !message; }
   function updateButtons() {
@@ -46,11 +47,13 @@ export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vaul
     if (sealed) { sealed.secret = ''; sealed.compact = ''; sealed = null; }
     $('#sealed-key').value = ''; $('#sealed-key').type = 'password';
     $('#reveal-key').textContent = 'Göster'; $('#reveal-key').setAttribute('aria-pressed', 'false');
+    $('#sealed-sculpture').textContent = '';
     $('#seal-result').hidden = true; $('#seal-form').hidden = false;
   }
   function dropOpened() {
     opened?.bytes.fill(0); opened = null;
     $('#opened-text').value = ''; $('#opened-name').textContent = ''; $('#open-result').hidden = true; $('#open-form').hidden = false;
+    $('#opened-sculpture').textContent = ''; $('#opened-sculpture').hidden = true;
   }
   function clearAll(showNotice = true) {
     operation++; busy = false; camera.stop(); mixer.reset(); dropSealed(); dropOpened();
@@ -58,6 +61,7 @@ export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vaul
     $('#secret-file-name').textContent = 'Bir dosya seç';
     $('#secret-file-size').textContent = 'Fotoğraf, belge, herhangi bir dosya · en fazla 10 MB';
     $('#sealed-file-name').textContent = 'Kilitli dosyayı seç';
+    $('#sculpture-source-state').textContent = 'HER ŞİFRELEMEDE ÖRNEKLENİR';
     setError('#seal-error'); setError('#open-error'); onPhase('idle'); updateButtons();
     if (showNotice) notify('Sayfadaki içerikler temizlendi. Kamera kapalı.');
   }
@@ -119,17 +123,24 @@ export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vaul
   });
   $('#seal-form').addEventListener('submit', async (event) => {
     event.preventDefault(); if (busy || $('#seal-submit').disabled) return;
-    const id = ++operation; busy = true; setError('#seal-error'); updateButtons(); onPhase('working');
-    let bytes, supplemental;
+    const id = ++operation; busy = true; setError('#seal-error'); updateButtons();
+    let bytes, supplemental, sculpture;
     try {
+      try { sculpture = await captureSculpture(); }
+      catch { throw new VaultError('Heykel okunamadı. Yüklenmesini bekleyip yeniden dene; gerekirse sayfayı yenile.'); }
+      if (!(sculpture instanceof Uint8Array) || sculpture.length !== 32) throw new VaultError('Heykel izi alınamadı. Yeniden dene.');
+      if (id !== operation) return;
+      onPhase('working');
       const file = inputKind === 'file' ? $('#secret-file').files[0] : null;
       bytes = file ? new Uint8Array(await file.arrayBuffer()) : encoder.encode($('#secret-text').value);
       if (id !== operation) return;
       supplemental = await mixer.snapshot();
       if (id !== operation) return;
-      const result = await seal({ kind: file ? 'file' : 'text', name: file?.name || 'esik-metin.txt', mime: file?.type || 'text/plain', bytes }, supplemental);
+      const result = await seal({ kind: file ? 'file' : 'text', name: file?.name || 'esik-metin.txt', mime: file?.type || 'text/plain', bytes, sculpture }, supplemental);
       if (id !== operation) { result.secret = ''; return; }
       dropSealed(); sealed = result; $('#sealed-key').value = result.secret;
+      $('#sealed-sculpture').textContent = sculptureLabel(result.sculpture);
+      $('#sculpture-source-state').textContent = `SON İZ · ${result.sculpture.slice(0, 8).toUpperCase()}`;
       $('#secret-text').value = ''; $('#secret-file').value = '';
       $('#secret-file-name').textContent = 'Bir dosya seç';
       $('#secret-file-size').textContent = 'Fotoğraf, belge, herhangi bir dosya · en fazla 10 MB';
@@ -138,7 +149,7 @@ export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vaul
     } catch (error) {
       if (id === operation) { setError('#seal-error', error instanceof VaultError ? error.message : 'Kilitlenemedi. Tarayıcıda yeterli bellek olduğundan emin olup yeniden dene.'); onPhase('idle'); }
     } finally {
-      bytes?.fill(0); supplemental?.fill(0);
+      bytes?.fill(0); supplemental?.fill(0); sculpture?.fill(0);
       if (id === operation) { busy = false; updateButtons(); }
     }
   });
@@ -154,6 +165,8 @@ export function initVault({ notify, onPhase = () => {}, initialWorkspace = 'vaul
       if (id !== operation) { result.bytes.fill(0); return; }
       dropOpened(); opened = result;
       $('#opened-name').textContent = result.name;
+      $('#opened-sculpture').hidden = !result.sculpture;
+      $('#opened-sculpture').textContent = result.sculpture ? sculptureLabel(result.sculpture) : '';
       $('#opened-text').hidden = result.kind !== 'text';
       if (result.kind === 'text') $('#opened-text').value = decoder.decode(result.bytes);
       $('#open-key').value = ''; $('#sealed-text').value = ''; $('#sealed-file').value = '';
