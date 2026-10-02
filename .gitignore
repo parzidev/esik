@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.releases/
+.env
+.env.*
+!.env.example
+.DS_Store
+._*
+*.log
+*.jwe
+esik-acma-anahtari*.txt
+__pycache__/
+coverage/
