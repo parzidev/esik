@@ -1,0 +1,24 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#151616"><title>Koza · API</title><link rel="icon" href="/favicon.svg"><style>
+@font-face{font-family:Manrope;src:url('/fonts/sans.ttf');font-weight:200 800;font-display:swap}@font-face{font-family:Plex;src:url('/fonts/mono.ttf');font-display:swap}*{box-sizing:border-box}html{color-scheme:dark}body{margin:0;background:#151616;color:#eceae3;font:13px Manrope,sans-serif;line-height:1.9}a{color:inherit;text-decoration:none}a:hover{color:#d7bb91}header,main,footer{max-width:850px;margin:auto;padding:0 28px}header{height:90px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #343632}.brand{font-size:25px;font-weight:600;letter-spacing:-1px}header>a:last-child{font-size:11px;color:#a8ad9f}main{padding-top:46px;padding-bottom:20px}h1{font-size:27px;font-weight:500;margin:0 0 7px}h2{font-size:15px;font-weight:600;margin:35px 0 13px}p{color:#aeb2a5;max-width:680px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c1e1a;border:1px solid #343632;border-radius:8px;padding:20px;font:11px/1.9 Plex,monospace;color:#dadacd}code{font-family:Plex,monospace;font-size:11px;color:#d7bb91}.tag{font:10px Plex,monospace;border:1px solid #515643;border-radius:4px;padding:4px 7px;color:#b7c39f;margin-right:9px}.endpoint{font-size:14px;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;font-size:11px}td,th{text-align:left;padding:12px 0;border-bottom:1px solid #343632;vertical-align:top}th{font-weight:500;color:#aaa}td:first-child{width:26%;padding-right:16px;color:#dadccd}footer{padding-top:20px;padding-bottom:40px;display:flex;gap:22px;color:#aaa;font-size:11px}a:focus-visible{outline:2px solid #d7bb91;outline-offset:4px}@media(max-width:500px){header,main,footer{padding-left:22px;padding-right:22px}pre{padding:14px;font-size:10px}.endpoint{font-size:12px}}
+</style></head><body><header><a class="brand" href="/">koza</a><a href="/">Uygulamaya dön ↗</a></header><main><h1>Şifreleme API’si</h1><p>AES-256-GCM · JWE · JSON</p><p>API, içeriği sunucuda işler. Tarayıcı uygulaması şifrelemeyi bu cihazda yapar. Sunucu içerik veya anahtar kaydetmez; her işlemde yeni bir anahtar üretir.</p>
+<h2>Erişim</h2><p>İşlem uçları bir <code>Bearer</code> erişim anahtarı ister. Bu, dosyaları açan <code>KOZA1-</code> anahtarından ayrıdır. Erişim anahtarı sunucudaki <code>/docker/makeme/.secrets/api-token</code> dosyasındadır; frontend’e veya herkese açık kodlara ekleme.</p><pre>export KOZA_BASE_URL="https://makeme.parzi.dev"
+# KOZA_API_TOKEN: sunucunun erişim anahtarı</pre>
+<h2 class="endpoint"><span class="tag">POST</span>/api/v1/encrypt</h2><pre>curl "$KOZA_BASE_URL/api/v1/encrypt" \
+  -H "Authorization: Bearer $KOZA_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"text":"Merhaba","name":"not.txt"}'</pre><pre>{
+  "jwe": "&lt;şifreli JWE&gt;",
+  "key": "KOZA1-…",
+  "algorithm": "A256GCM"
+}</pre><p>Dosya için <code>text</code> yerine <code>data</code> alanında dolgusu olmayan base64url verisi gönder. <code>name</code> ve <code>mime</code> alanları isteğe bağlıdır. Dosya adı da şifreli yükte tutulur.</p>
+<h2 class="endpoint"><span class="tag">POST</span>/api/v1/decrypt</h2><pre>curl "$KOZA_BASE_URL/api/v1/decrypt" \
+  -H "Authorization: Bearer $KOZA_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"jwe":"&lt;şifreli JWE&gt;","key":"KOZA1-…"}'</pre><pre>{
+  "kind": "text",
+  "name": "not.txt",
+  "mime": "text/plain",
+  "text": "Merhaba"
+}</pre><p>Dosya yanıtı <code>text</code> yerine base64url <code>data</code> içerir. Tarayıcı ve API çıktıları birbirinde açılabilir. Eski <code>ESIK1-</code> anahtarları da kabul edilir.</p>
+<h2>Heykel bağlamı</h2><p><code>encrypt</code> isteğinde isteğe bağlı <code>sculpture</code> alanı, 64 karakterlik bir SHA-256 heykel izi kabul eder. Bu iz HKDF anahtar türetimine girer ve şifreli yükte saklanır. API heykel render etmez. İzi göndermezsen yeni rastgele AES anahtarı kullanılır. Heykelden ek entropi veya güvenlik artışı iddia edilmez.</p>
+<h2>Sınırlar</h2><table><tbody><tr><td>İçerik</td><td>En fazla 10 MiB</td></tr><tr><td>İstekler</td><td>Servis başına 60 işlem/dakika · aynı anda 2 işlem</td></tr><tr><td>Yanıtlar</td><td>400 geçersiz istek · 401 erişim · 413 boyut · 415 içerik türü · 422 yanlış anahtar/değiştirilmiş veri · 429 hız sınırı · 503 meşgul</td></tr><tr><td>Veri</td><td>Kalıcı depolama ve istek gövdesi kaydı yok. Yanıtlarda no-store.</td></tr></tbody></table><p>Anahtarı JWE’den ayrı sakla. Bu uygulama bağımsız güvenlik denetiminden geçmemiştir.</p></main><footer><a href="/api/v1/openapi.json">OpenAPI 3.1 ↗</a><a href="https://github.com/parzidev/esik" target="_blank" rel="noopener noreferrer">Kaynak kod ↗</a></footer></body></html>

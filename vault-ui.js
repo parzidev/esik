@@ -1,4 +1,3 @@
-import './vault.css';
 import { MAX_BYTES, MAX_PACKAGE_CHARS, seal, unseal, safeFilename, VaultError } from './vault-crypto.js';
 import { SourceMixer, CameraSampler } from './vault-sources.js';
 
@@ -8,11 +7,11 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
   const decoder = new TextDecoder('utf-8', { fatal: true });
   let mode = 'seal', inputKind = 'text', busy = false, operation = 0;
   let sealed = null, opened = null, cameraPending = false, lastPointer = 0;
-  const mixer = new SourceMixer(globalThis.crypto, (count) => { $('#source-count').textContent = `${count.toLocaleString('tr-TR')} EK ÖRNEK`; });
+  const mixer = new SourceMixer(globalThis.crypto, (count) => { $('#source-count').textContent = `${count.toLocaleString('tr-TR')} ÖRNEK`; });
   const sampleCanvas = document.createElement('canvas'); sampleCanvas.width = sampleCanvas.height = 32;
   const camera = new CameraSampler({ mediaDevices: navigator.mediaDevices, video: $('#source-video'), canvas: sampleCanvas, mixer, onChange(active) {
     $('#camera-toggle').setAttribute('aria-pressed', String(active));
-    $('#camera-toggle').innerHTML = active ? 'Kamerayı kapat <span aria-hidden="true">×</span>' : 'Kamera ekle <span aria-hidden="true">↗</span>';
+    $('#camera-toggle').innerHTML = active ? 'Kamerayı kapat <span aria-hidden="true">×</span>' : 'Kamera <span aria-hidden="true">↗</span>';
   } });
   const available = !!globalThis.crypto?.subtle;
   const sculptureLabel = (value) => `Heykel izi · ${value.slice(0, 16).match(/.{4}/g).join('·').toUpperCase()}`;
@@ -22,7 +21,7 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
     $('#seal-submit').disabled = !available || busy || (inputKind === 'text' ? !$('#secret-text').value.length : !$('#secret-file').files.length);
     $('#open-submit').disabled = !available || busy || !$('#open-key').value.trim() || (!$('#sealed-text').value.trim() && !$('#sealed-file').files.length);
     for (const id of ['#secret-text', '#secret-file', '#sealed-text', '#sealed-file', '#open-key', '#input-text', '#input-file']) $(id).disabled = busy;
-    $('#seal-submit').querySelector('span').textContent = busy && mode === 'seal' ? 'Kilitleniyor…' : 'Kilitle ve anahtar üret';
+    $('#seal-submit').querySelector('span').textContent = busy && mode === 'seal' ? 'Şifreleniyor…' : 'Şifrele';
     $('#open-submit').querySelector('span').textContent = busy && mode === 'open' ? 'Açılıyor…' : 'Şifreyi çöz';
     $('#vault-panel').setAttribute('aria-busy', String(busy));
   }
@@ -59,11 +58,11 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
     operation++; busy = false; camera.stop(); mixer.reset(); dropSealed(); dropOpened();
     for (const id of ['#secret-text', '#secret-file', '#sealed-text', '#sealed-file', '#open-key']) $(id).value = '';
     $('#secret-file-name').textContent = 'Bir dosya seç';
-    $('#secret-file-size').textContent = 'Fotoğraf, belge, herhangi bir dosya · en fazla 10 MB';
+    $('#secret-file-size').textContent = 'En fazla 10 MiB';
     $('#sealed-file-name').textContent = 'Kilitli dosyayı seç';
-    $('#sculpture-source-state').textContent = 'HER ŞİFRELEMEDE ÖRNEKLENİR';
+    $('#sculpture-source-state').textContent = 'HER İŞLEMDE ÖRNEKLENİR';
     setError('#seal-error'); setError('#open-error'); onPhase('idle'); updateButtons();
-    if (showNotice) notify('Sayfadaki içerikler temizlendi. Kamera kapalı.');
+    if (showNotice) notify('Temizlendi.');
   }
   function download(data, name, mime = 'text/plain;charset=utf-8') {
     const blob = new Blob([data], { type: mime });
@@ -80,10 +79,6 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
     $('#workspace-vault').setAttribute('aria-pressed', String(next === 'vault'));
     $('#workspace-art').setAttribute('aria-pressed', String(next === 'art'));
     const art = next === 'art';
-    $('#hero-eyebrow').innerHTML = `<span class="status-dot" aria-hidden="true"></span> ${art ? 'İNTERAKTİF ATÖLYE' : 'YEREL ŞİFRELEME'}`;
-    $('#hero-title').innerHTML = art ? '3D form<br /><em>atölyesi.</em>' : 'Metin ve<br />dosya<br /> <em>şifrele.</em>';
-    $('#hero-title').setAttribute('aria-label', art ? '3D form atölyesi.' : 'Metin ve dosya şifrele.');
-    $('#hero-copy').innerHTML = art ? 'Form üret, malzemesini değiştir.<br class="desktop-break" /> Hareketini ve sesini ayarla.' : 'Dosyanı seç veya metnini yaz.<br class="desktop-break" /> Şifreli çıktıyı ve anahtarını indir.';
     if (art) camera.stop();
     if (updateAddress) {
       const url = new URL(location.href); url.searchParams.set('workspace', next);
@@ -113,7 +108,7 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
     if (file?.size > MAX_BYTES) { $('#secret-file').value = ''; setError('#seal-error', 'Dosya 10 MB sınırını aşıyor. Daha küçük bir dosya seç.'); }
     const selected = $('#secret-file').files[0];
     $('#secret-file-name').textContent = selected?.name || 'Bir dosya seç';
-    $('#secret-file-size').textContent = selected ? `${(selected.size / 1024).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} KB · şifreleme bu cihazda` : 'Fotoğraf, belge, herhangi bir dosya · en fazla 10 MB';
+    $('#secret-file-size').textContent = selected ? `${(selected.size / 1024).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} KB · şifreleme bu cihazda` : 'En fazla 10 MiB';
     updateButtons();
   });
   $('#sealed-file').addEventListener('change', () => {
@@ -136,14 +131,14 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
       if (id !== operation) return;
       supplemental = await mixer.snapshot();
       if (id !== operation) return;
-      const result = await seal({ kind: file ? 'file' : 'text', name: file?.name || 'esik-metin.txt', mime: file?.type || 'text/plain', bytes, sculpture }, supplemental);
+      const result = await seal({ kind: file ? 'file' : 'text', name: file?.name || 'koza-metin.txt', mime: file?.type || 'text/plain', bytes, sculpture }, supplemental);
       if (id !== operation) { result.secret = ''; return; }
       dropSealed(); sealed = result; $('#sealed-key').value = result.secret;
       $('#sealed-sculpture').textContent = sculptureLabel(result.sculpture);
       $('#sculpture-source-state').textContent = `SON İZ · ${result.sculpture.slice(0, 8).toUpperCase()}`;
       $('#secret-text').value = ''; $('#secret-file').value = '';
       $('#secret-file-name').textContent = 'Bir dosya seç';
-      $('#secret-file-size').textContent = 'Fotoğraf, belge, herhangi bir dosya · en fazla 10 MB';
+      $('#secret-file-size').textContent = 'En fazla 10 MiB';
       $('#seal-form').hidden = true; $('#seal-result').hidden = false; onPhase('success');
       $('#download-sealed').focus({ preventScroll: true });
     } catch (error) {
@@ -176,8 +171,8 @@ export function initVault({ notify, captureSculpture, onPhase = () => {}, initia
       if (id === operation) { dropOpened(); setError('#open-error', error instanceof VaultError ? error.message : 'Bu dosya açılamadı. Veriyi ve anahtarı kontrol et.'); onPhase('idle'); }
     } finally { if (id === operation) { busy = false; updateButtons(); } }
   });
-  $('#download-sealed').addEventListener('click', () => { if (sealed) download(sealed.compact, 'esik-kilitli.jwe', 'application/jose'); });
-  $('#download-key').addEventListener('click', () => { if (sealed) download(sealed.secret + '\n', 'esik-acma-anahtari.txt'); });
+  $('#download-sealed').addEventListener('click', () => { if (sealed) download(sealed.compact, 'koza-kilitli.jwe', 'application/jose'); });
+  $('#download-key').addEventListener('click', () => { if (sealed) download(sealed.secret + '\n', 'koza-acma-anahtari.txt'); });
   $('#copy-key').addEventListener('click', () => { if (sealed) void copy(sealed.secret); });
   $('#copy-sealed').addEventListener('click', () => { if (sealed) void copy(sealed.compact); });
   $('#reveal-key').addEventListener('click', () => {

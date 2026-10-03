@@ -21,10 +21,51 @@ services:
       timeout: 3s
       start_period: 5s
       retries: 3
+    depends_on:
+      koza-api:
+        condition: service_healthy
     networks:
       proxy:
         aliases:
           - makmeme
+  koza-api:
+    image: node:22-alpine
+    container_name: koza-api
+    restart: unless-stopped
+    user: "1000:1000"
+    working_dir: /app
+    command: ["node", "backend/server.js"]
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      NODE_OPTIONS: --max-old-space-size=192
+      KOZA_API_TOKEN_FILE: /run/secrets/koza_api_token
+    secrets:
+      - koza_api_token
+    volumes:
+      - ./backend:/app/backend:ro
+      - ./vault-crypto.js:/app/vault-crypto.js:ro
+      - ./package.json:/app/package.json:ro
+    tmpfs:
+      - /tmp
+    mem_limit: 512m
+    pids_limit: 32
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - proxy
+secrets:
+  koza_api_token:
+    file: ./.secrets/api-token
+
 networks:
   proxy:
     external: true

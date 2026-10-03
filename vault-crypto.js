@@ -6,7 +6,7 @@ export const MAX_PACKAGE_CHARS = Math.ceil((MAX_BYTES * 4 / 3 + 8192) * 4 / 3) +
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const HEADER = { alg: 'dir', enc: 'A256GCM', typ: 'JWE', cty: 'application/json' };
-const KEY_PREFIX = 'ESIK1-';
+const KEY_PREFIX = 'KOZA1-';
 
 export class VaultError extends Error {
   constructor(message) { super(message); this.name = 'VaultError'; }
@@ -34,7 +34,7 @@ export function fromBase64url(value) {
 }
 
 export function safeFilename(value) {
-  return String(value || 'esik-dosya').normalize('NFC').replace(/[\x00-\x1f\x7f/\\<>:"|?*]/g, '_').replace(/^\.+/, '_').slice(0, 160) || 'esik-dosya';
+  return String(value || 'koza-dosya').normalize('NFC').replace(/[\x00-\x1f\x7f/\\<>:"|?*]/g, '_').replace(/^\.+/, '_').slice(0, 160) || 'koza-dosya';
 }
 
 function validMime(value) {
@@ -42,8 +42,8 @@ function validMime(value) {
 }
 
 function keyBytes(secret) {
-  if (typeof secret !== 'string' || secret.length > 100) throw new VaultError('Anahtar, EŞİK’in verdiği 256 bitlik anahtar olmalı.');
-  const value = secret.trim().replace(/^ESIK1-/, '');
+  if (typeof secret !== 'string' || secret.length > 100) throw new VaultError('Anahtar, Koza’nın verdiği 256 bitlik anahtar olmalı.');
+  const value = secret.trim().replace(/^(?:KOZA1|ESIK1)-/, '');
   if (value.length !== 43) throw new VaultError('Anahtar eksik veya geçersiz.');
   const bytes = fromBase64url(value);
   if (bytes.length !== 32) throw new VaultError('Anahtar eksik veya geçersiz.');
@@ -61,7 +61,7 @@ async function newSecret(supplemental, sculpture, cryptoProvider) {
     const initial = new Uint8Array(await crypto.subtle.exportKey('raw', key));
     try {
       const input = await crypto.subtle.importKey('raw', initial, 'HKDF', false, ['deriveKey']);
-      const domain = encoder.encode(sculpture ? 'ESIK/local-vault/sculpture/v1\0' : 'ESIK/local-vault/v1');
+      const domain = encoder.encode(sculpture ? 'KOZA/local-vault/sculpture/v1\0' : 'KOZA/local-vault/v1');
       const info = new Uint8Array(domain.length + (sculpture?.length || 0));
       info.set(domain); if (sculpture) info.set(sculpture, domain.length);
       key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: supplemental || new Uint8Array(32), info }, input, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -96,7 +96,7 @@ export async function unseal(compact, secret, cryptoProvider = globalThis.crypto
   const crypto = provider(cryptoProvider);
   if (typeof compact !== 'string' || compact.length > MAX_PACKAGE_CHARS) throw new VaultError('Kilitli veri çok büyük veya geçersiz.');
   const parts = compact.trim().split('.');
-  if (parts.length !== 5 || parts[1] !== '' || parts[0].length > 1024) throw new VaultError('Bir EŞİK kilitli dosyası veya şifreli metni seç.');
+  if (parts.length !== 5 || parts[1] !== '' || parts[0].length > 1024) throw new VaultError('Bir Koza kilitli dosyası veya şifreli metni seç.');
   let header;
   try { header = JSON.parse(decoder.decode(fromBase64url(parts[0]))); }
   catch { throw new VaultError('Kilitli dosyanın başlığı geçersiz.'); }

@@ -1,14 +1,22 @@
 {
-  "name": "esik-impossible-objects",
+  "name": "koza",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "test": "node --test test/*.test.js",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "api": "node backend/server.js"
   },
-  "dependencies": { "three": "0.186.1" },
-  "devDependencies": { "vite": "8.3.2" }
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "vite": "8.3.2"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }

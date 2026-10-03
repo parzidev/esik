@@ -1,4 +1,4 @@
-import './style.css';
+import './koza.css';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { DEFAULT_SEED, CURVE_SAMPLES, normalizeSeed, randomSeed, generateForm, createCurveTexture } from './form-generator.js';
@@ -14,7 +14,7 @@ const forms = [
   { name: 'Sonsuz', description: 'Her tohumdan başka bir dünya.', note: 'Olasılıkların bir sonu yok.', chord: [110, 165, 220, 275] },
 ];
 const materials = [
-  { name: 'Bakır', color: '#b4421c', metalness: 0.62, roughness: 0.33, sheen: '#d15c31' },
+  { name: 'Bakır', color: '#bc7a52', metalness: 0.62, roughness: 0.33, sheen: '#dbab7f' },
   { name: 'Porselen', color: '#ede4d2', metalness: 0.04, roughness: 0.3, sheen: '#e8d4b6' },
   { name: 'Grafit', color: '#202b24', metalness: 0.28, roughness: 0.36, sheen: '#657163' },
 ];
@@ -79,7 +79,7 @@ function updateLabels() {
   $('#form-name').textContent = activeForm().name;
   $('#form-description').textContent = activeForm().description;
   $('#description-index').textContent = state.form === 4 ? '∞ / FORM' : `0${state.form + 1} / 04`;
-  $('#specimen-number').textContent = state.form === 4 ? 'NESNE ∞' : `NESNE 00${state.form + 1}`;
+  $('#specimen-number').textContent = state.form === 4 ? 'Heykel' : `Heykel / 0${state.form + 1}`;
   $('#seed-label').textContent = `TOHUM ${seedLabel()}`;
   canvas.dataset.formMode = state.form === 4 ? 'infinite' : 'preset';
   canvas.dataset.seed = String(state.seed);
@@ -232,7 +232,7 @@ function initializeSculpture() {
   renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 760 ? 1.5 : 1.8));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
-  renderer.setClearColor(0xeeeae1, 0);
+  renderer.setClearColor(0x151616, 0);
   scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   const room = new RoomEnvironment();
@@ -461,7 +461,7 @@ $('#touch-hint').addEventListener('click', () => {
   state.unfolded = !state.unfolded;
   $('#touch-hint').setAttribute('aria-pressed', String(state.unfolded));
   $('#touch-hint').setAttribute('aria-label', state.unfolded ? 'Katmanları kapat' : 'Katmanları aç');
-  $('#unfold-label').textContent = state.unfolded ? 'YENİDEN TOPLA ↙' : 'İÇİNİ AÇ ↗';
+  $('#unfold-label').textContent = state.unfolded ? 'Kapat' : 'Katmanlar';
   playNote(activeForm().chord[3]*2);
 });
 $('#flow').addEventListener('input', (event) => {
@@ -594,25 +594,25 @@ async function savePoster() {
     await document.fonts.ready;
     const poster=document.createElement('canvas'); poster.width=1600; poster.height=2000;
     const ctx=poster.getContext('2d');
-    ctx.fillStyle='#eeeae1'; ctx.fillRect(0,0,1600,2000);
-    ctx.strokeStyle='#c6bdac'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(100,155); ctx.lineTo(1500,155); ctx.moveTo(100,1780); ctx.lineTo(1500,1780); ctx.stroke();
-    ctx.fillStyle='#292924'; ctx.font='600 31px Manrope'; ctx.fillText('E Ş İ K',100,108);
-    ctx.font='17px Plex'; ctx.textAlign='right'; ctx.fillStyle='#807665'; ctx.fillText('3D FORM ATÖLYESİ',1500,105);
-    ctx.textAlign='left'; ctx.fillStyle='#292924'; ctx.font='132px Instrument'; ctx.fillText('3D form',100,328); ctx.font='italic 132px Instrument'; ctx.fillStyle='#bc4f32'; ctx.fillText('çalışması.',100,456);
+    ctx.fillStyle='#151616'; ctx.fillRect(0,0,1600,2000);
+    ctx.strokeStyle='#3b3c3a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(100,155); ctx.lineTo(1500,155); ctx.moveTo(100,1780); ctx.lineTo(1500,1780); ctx.stroke();
+    ctx.fillStyle='#e9e6de'; ctx.font='600 31px Manrope'; ctx.fillText('koza',100,108);
+    ctx.font='17px Plex'; ctx.textAlign='right'; ctx.fillStyle='#a9aba5'; ctx.fillText('HEYKEL',1500,105);
+    ctx.textAlign='left'; ctx.fillStyle='#e9e6de'; ctx.font='74px Manrope'; ctx.fillText('Heykel',100,328);
     const exportCamera=new THREE.PerspectiveCamera(35,1400/1160,.1,50); exportCamera.position.set(0,.42,8.5*(1+Math.max(0,bloom)*.6)); exportCamera.lookAt(0,0,0);
     const ratio=renderer.getPixelRatio();
     try {
       renderer.setPixelRatio(1); renderer.setSize(1400,1160,false); renderer.render(scene,exportCamera);
       ctx.drawImage(canvas,100,520,1400,1160);
     } finally {renderer.setPixelRatio(ratio);resize();renderer.render(scene,camera);}
-    ctx.fillStyle='#292924'; ctx.font='74px Instrument'; ctx.fillText(activeForm().name,100,1728);
-    ctx.fillStyle='#807665'; ctx.font='20px Manrope'; ctx.textAlign='right'; ctx.fillText(activeForm().note,1500,1724);
+    ctx.fillStyle='#e9e6de'; ctx.font='74px Instrument'; ctx.fillText(activeForm().name,100,1728);
+    ctx.fillStyle='#a9aba5'; ctx.font='20px Manrope'; ctx.textAlign='right'; ctx.fillText(materials[state.material].name,1500,1724);
     ctx.textAlign='left'; ctx.font='17px Plex'; ctx.fillText(`NESNE ${state.form === 4 ? '∞' : '00'+(state.form+1)}    /    ${materials[state.material].name.toLocaleUpperCase('tr-TR')}    /    TOHUM ${seedLabel()}`,100,1840);
     ctx.textAlign='right'; ctx.fillText('makeme.parzi.dev',1500,1880);
     const blob=await new Promise((resolve)=>poster.toBlob(resolve,'image/png'));
     if (!blob) throw new Error('PNG could not be created');
     const link=document.createElement('a'); const blobUrl=URL.createObjectURL(blob);
-    link.href=blobUrl; link.download=`esik-${activeForm().name.toLocaleLowerCase('tr-TR').replaceAll(' ','-')}-${state.seed}.png`; link.click();
+    link.href=blobUrl; link.download=`koza-${activeForm().name.toLocaleLowerCase('tr-TR').replaceAll(' ','-')}-${state.seed}.png`; link.click();
     setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
     notify('Afiş indirildi.');
   } catch {notify('Afiş kaydedilemedi. Bir kez daha deneyebilirsin.');}
@@ -630,7 +630,7 @@ canvas.addEventListener('webglcontextlost', (event) => {
 updateLabels();
 try {initializeSculpture();}
 catch(error) {
-  console.error('EŞİK could not initialize:',error);
+  console.error('Koza could not initialize:',error);
   $('#stage-fallback').hidden=false;
   $('#save').disabled=true;
   $('#pause').disabled=true;

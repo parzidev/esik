@@ -49,7 +49,7 @@ test('binary files, empty files, size limits and fail-closed provider validation
   }
   await assert.rejects(seal({ ...message, bytes: new Uint8Array(MAX_BYTES + 1) }), /10 MB/);
   await assert.rejects(seal(message, null, {}), /güvenli şifreleme/);
-  await assert.rejects(unseal('x.x.x.x.x', '123'), /EŞİK/);
+  await assert.rejects(unseal('x.x.x.x.x', '123'), /Koza/);
   const result = await seal(message);
   await assert.rejects(unseal(result.compact, '4109'), /Anahtar/);
   await assert.rejects(unseal(result.compact, 'ESIK1-' + 'x'.repeat(43)), /veri biçimi|Açılamadı/);
@@ -115,8 +115,8 @@ test('changing only the sculpture changes the derived key; the saved key recover
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-key=HKDF(algorithm=hashes.SHA256(),length=32,salt=bytes(32),info=b'ESIK/local-vault/sculpture/v1\\x00'+bytes([17])*32).derive(bytes(range(32)))
-print('ESIK1-'+base64.urlsafe_b64encode(key).decode().rstrip('='))
+key=HKDF(algorithm=hashes.SHA256(),length=32,salt=bytes(32),info=b'KOZA/local-vault/sculpture/v1\\x00'+bytes([17])*32).derive(bytes(range(32)))
+print('KOZA1-'+base64.urlsafe_b64encode(key).decode().rstrip('='))
 `], { encoding: 'utf8' });
     assert.equal(python.status, 0, python.stderr);
     assert.equal(first.secret, python.stdout.trim());

@@ -1,7 +1,7 @@
 // Supplemental samples are never assigned an entropy estimate. The mandatory
 // cryptographic key generator remains secure without any of these samples.
 export const SCULPTURE_SAMPLE_SIZE = 64;
-const sculptureDomain = new TextEncoder().encode('ESIK/sculpture-frame/v1\n');
+const sculptureDomain = new TextEncoder().encode('KOZA/sculpture-frame/v1\n');
 
 export async function hashSculptureFrame(pixels, state, cryptoProvider = globalThis.crypto) {
   if (!(pixels instanceof Uint8Array) || pixels.length !== SCULPTURE_SAMPLE_SIZE ** 2 * 4 || !cryptoProvider?.subtle) throw new Error('Heykel karesi okunamadı.');

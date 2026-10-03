@@ -11,3 +11,6 @@ dist/
 esik-acma-anahtari*.txt
 __pycache__/
 coverage/
+
+.secrets/
+koza-acma-anahtari*.txt
